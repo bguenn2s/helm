@@ -1,6 +1,6 @@
 # Posit Connect
 
-![Version: 0.9.3](https://img.shields.io/badge/Version-0.9.3-informational?style=flat-square) ![AppVersion: 2026.04.0](https://img.shields.io/badge/AppVersion-2026.04.0-informational?style=flat-square)
+![Version: 0.20.5](https://img.shields.io/badge/Version-0.20.5-informational?style=flat-square) ![AppVersion: 2026.05.1](https://img.shields.io/badge/AppVersion-2026.05.1-informational?style=flat-square)
 
 #### _Official Helm chart for Posit Connect_
 
@@ -30,11 +30,11 @@ To ensure reproducibility in your environment and insulate yourself from future 
 
 ## Installing the chart
 
-To install the chart with the release name `my-release` at version 0.9.3:
+To install the chart with the release name `my-release` at version 0.20.5:
 
 ```{.bash}
 helm repo add rstudio https://helm.rstudio.com
-helm upgrade --install my-release rstudio/rstudio-connect --version=0.9.3
+helm upgrade --install my-release rstudio/rstudio-connect --version=0.20.5
 ```
 
 To explore other chart versions, look at:
@@ -44,6 +44,19 @@ helm search repo rstudio/rstudio-connect -l
 ```
 
 ## Upgrade guidance
+
+### 0.20.1
+
+- Chart version 0.10.0 changes the default execution backend to use a new Off-Host Execution implementation: `backends.kubernetes.enabled` now defaults to `true` and `launcher.enabled` now defaults to `false`.
+New installations use the new implementation by default. To continue using the Launcher, set `launcher.enabled: true` and `backends.kubernetes.enabled: false` in your values.yaml.
+See the [upgrade guide](https://docs.posit.co/helm/examples/connect/upgrade-launcher-to-kubernetes/launcher-to-kubernetes.html) for details on transitioning to the new implementation.
+  - **IMPORTANT** When `backends.kubernetes.enabled=true`, service accounts used for content execution require the `connect.posit.co/service-account` label.
+
+### 0.20.0
+
+- Chart version 0.20.0 switches default images from `ghcr.io/rstudio/` to the `posit/` namespace on Docker Hub (also available at `ghcr.io/posit-dev/`). See the [migration guide](https://docs.posit.co/helm/docs/migrating-to-posit-images.html) for details.
+- Image tag format changed from `{tagPrefix}{appVersion}` to `{appVersion}-{os}`. The chart will fail with a clear error if you have `image.tagPrefix` set — replace it with `image.os`.
+- `launcher.customRuntimeYaml` and `launcher.additionalRuntimeImages` have been removed. Use `executionEnvironments` instead.
 
 ### 0.9.0
 
@@ -199,8 +212,8 @@ can be set and the release can be upgraded to include the new value.
 
 This chart supports [declarative management of execution environments](https://docs.posit.co/connect/admin/appendix/off-host/execution-environments/#declarative-management)
 via `ExecutionEnvironments.ConfigFilePath`. Requires Connect version 2026.03.0 or later.
-Unlike the legacy `launcher.customRuntimeYaml`, changes to `executionEnvironments`
-take effect on every `helm upgrade` without requiring a pod restart or database reset.
+Changes to `executionEnvironments` take effect on every `helm upgrade` without
+requiring a pod restart or database reset.
 
 When `executionEnvironments` is set, the chart renders the list into a dedicated
 ConfigMap and mounts it into the Connect pod. Connect only manages the execution
@@ -268,14 +281,13 @@ The Helm `config` values are converted into the `rstudio-connect.gcfg` service c
 | args | list | `[]` | The pod's run arguments. By default, it uses the container's default |
 | backends.kubernetes.defaultInitContainer.enabled | bool | `true` | Whether to enable the defaultInitContainer. If disabled, you must ensure that the session components are available another way. Changing the default setting is an advanced option and not recommended. For more information on how Connect uses the session init container refer to https://docs.posit.co/connect/admin/appendix/off-host/arch-overview/#runtime-init-container |
 | backends.kubernetes.defaultInitContainer.imagePullPolicy | string | `""` | The imagePullPolicy for the default initContainer |
-| backends.kubernetes.defaultInitContainer.repository | string | `"ghcr.io/rstudio/rstudio-connect-content-init"` | The repository to use for the Content InitContainer image |
+| backends.kubernetes.defaultInitContainer.repository | string | `"posit/connect-content-init"` | The repository to use for the Content InitContainer image |
 | backends.kubernetes.defaultInitContainer.resources | object | `{}` | Optional resources for the default initContainer |
 | backends.kubernetes.defaultInitContainer.securityContext | object | `{}` | The securityContext for the default initContainer |
 | backends.kubernetes.defaultInitContainer.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| backends.kubernetes.defaultInitContainer.tagPrefix | string | `"ubuntu2204-"` | A tag prefix for the Content InitContainer image (common selections: jammy-, ubuntu2204-). Only used if tag is not defined |
 | backends.kubernetes.defaultResourceJobBase | object | `{}` | defaultResourceJobBase is an optional Kubernetes Job definition used as the base when launching content jobs. The chart automatically adds the init container and runtime volume when backends.kubernetes.defaultInitContainer.enabled is true. Only set this if you need to customize the job (e.g., add sidecars, node selectors, tolerations). https://kubernetes.io/docs/concepts/workloads/controllers/job/ |
 | backends.kubernetes.defaultResourceServiceBase | object | `{}` | defaultResourceServiceBase contains the Kubernetes Service definition which is used as an overlay "base" when creating a content job's Service in Kubernetes. Conceptually this is similar to a Kustomize base. Connect then applies any required Service configuration on-top of the overlay base to produce a final Service definition. https://kubernetes.io/docs/concepts/services-networking/service/ https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/#bases-and-overlays |
-| backends.kubernetes.enabled | bool | `false` | Whether to enable off-host execution for running content-jobs in remote Kubernetes pods. |
+| backends.kubernetes.enabled | bool | `true` | Whether to enable off-host execution for running content-jobs in remote Kubernetes pods. |
 | backends.kubernetes.namespace | string | `""` | The namespace to launch connect-content jobs into. Uses the Release namespace by default |
 | chronicleAgent.agentEnvironment | string | `""` | An environment tag to apply to all metrics reported by this agent    ([reference](https://docs.posit.co/chronicle/appendix/library/advanced-agent.html#environment)) |
 | chronicleAgent.autoDiscovery | bool | `true` | If true, the chart will attempt to lookup the Chronicle Server address and version in the cluster |
@@ -297,32 +309,29 @@ The Helm `config` values are converted into the `rstudio-connect.gcfg` service c
 | command | list | `[]` | The pod's run command. By default, it uses the container's default |
 | config | object | [Posit Connect Configuration Reference](https://docs.posit.co/connect/admin/appendix/off-host/helm-reference/) | A nested map of maps that generates the rstudio-connect.gcfg file |
 | deployment.annotations | object | `{}` | Additional annotations to add to the rstudio-connect deployment |
-| executionEnvironments | list | `[]` (disabled) | Optional list of execution environments to manage declaratively. Requires Connect version 2026.03.0 or later. When set, the chart renders these into a ConfigMap, mounts it into the Connect pod, and sets ExecutionEnvironments.ConfigFilePath in the Connect configuration. Unlike launcher.customRuntimeYaml, changes take effect on every helm upgrade without requiring a pod restart or database reset. |
+| executionEnvironments | list | `[]` (disabled) | Optional list of execution environments to manage declaratively. Requires Connect version 2026.03.0 or later. When set, the chart renders these into a ConfigMap, mounts it into the Connect pod, and sets ExecutionEnvironments.ConfigFilePath in the Connect configuration. Changes take effect on every helm upgrade without requiring a pod restart or database reset. |
 | extraObjects | list | `[]` | Extra objects to deploy (value evaluated as a template) |
 | fullnameOverride | string | `""` | The full name of the release (can be overridden) |
-| image | object | `{"imagePullPolicy":"IfNotPresent","imagePullSecrets":[],"repository":"ghcr.io/rstudio/rstudio-connect","tag":"","tagPrefix":"ubuntu2204-"}` | Defines the Posit Connect image to deploy |
+| image | object | `{"imagePullPolicy":"IfNotPresent","imagePullSecrets":[],"os":"ubuntu-24.04","repository":"posit/connect","tag":""}` | Defines the Posit Connect image to deploy |
 | image.imagePullPolicy | string | `"IfNotPresent"` | The imagePullPolicy for the main pod image |
 | image.imagePullSecrets | list | `[]` | an array of kubernetes secrets for pulling the main pod image from private registries |
-| image.repository | string | `"ghcr.io/rstudio/rstudio-connect"` | The repository to use for the main pod image |
+| image.os | string | `"ubuntu-24.04"` | The OS version for the image tag (e.g. ubuntu-24.04, ubuntu-22.04). Only used if tag is not defined |
+| image.repository | string | `"posit/connect"` | The repository to use for the main pod image |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| image.tagPrefix | string | `"ubuntu2204-"` | A tag prefix for the server image (common selections: jammy-, ubuntu2204-). Only used if tag is not defined |
 | ingress.annotations | object | `{}` |  |
 | ingress.enabled | bool | `false` |  |
 | ingress.hosts | string | `nil` |  |
 | ingress.ingressClassName | string | `""` | The ingressClassName for the ingress resource. Only used for clusters that support networking.k8s.io/v1 Ingress resources |
 | ingress.tls | list | `[]` |  |
 | initContainers | bool | `false` | The initContainer spec that will be used verbatim |
-| launcher.additionalRuntimeImages | list | `[]` | Deprecated, use `executionEnvironments` instead. Optional. Additional images to append to the end of the "launcher.customRuntimeYaml" (in the "images" key). If `customRuntimeYaml` is a "map", then "additionalRuntimeImages" will only be used if it is a "list". |
-| launcher.customRuntimeYaml | string | `""` | Deprecated, use `executionEnvironments` instead. Optional. The runtime.yaml definition of Kubernetes runtime containers. If set to "base", will pull in the default runtime.yaml file. If set to "pro", will pull in the "pro" versions of the default runtime images (i.e. including the pro drivers at the cost of a larger image). Starting with Connect v2023.05.0, this configuration is used to bootstrap the initial set of execution environments the first time the server starts. If any execution environments already exist in the database, these values are ignored; execution environments are not created or modified during subsequent restarts. |
-| launcher.defaultInitContainer | object | `{"enabled":true,"imagePullPolicy":"","repository":"ghcr.io/rstudio/rstudio-connect-content-init","resources":{},"securityContext":{},"tag":"","tagPrefix":"ubuntu2204-"}` | Image definition for the default Posit Connect Content InitContainer |
+| launcher.defaultInitContainer | object | `{"enabled":true,"imagePullPolicy":"","repository":"posit/connect-content-init","resources":{},"securityContext":{},"tag":""}` | Image definition for the default Posit Connect Content InitContainer |
 | launcher.defaultInitContainer.enabled | bool | `true` | Whether to enable the defaultInitContainer. If disabled, you must ensure that the session components are available another way. |
 | launcher.defaultInitContainer.imagePullPolicy | string | `""` | The imagePullPolicy for the default initContainer |
-| launcher.defaultInitContainer.repository | string | `"ghcr.io/rstudio/rstudio-connect-content-init"` | The repository to use for the Content InitContainer image |
+| launcher.defaultInitContainer.repository | string | `"posit/connect-content-init"` | The repository to use for the Content InitContainer image |
 | launcher.defaultInitContainer.resources | object | `{}` | Optional resources for the default initContainer |
 | launcher.defaultInitContainer.securityContext | object | `{}` | The securityContext for the default initContainer |
 | launcher.defaultInitContainer.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
-| launcher.defaultInitContainer.tagPrefix | string | `"ubuntu2204-"` | A tag prefix for the Content InitContainer image (common selections: jammy-, ubuntu2204-). Only used if tag is not defined |
-| launcher.enabled | bool | `true` | Whether to enable the launcher |
+| launcher.enabled | bool | `false` | Whether to enable the launcher |
 | launcher.extraTemplates | object | `{}` | extra templates to render in the template directory. |
 | launcher.includeDefaultTemplates | bool | `true` | whether to include the default `job.tpl` and `service.tpl` files included with the chart |
 | launcher.includeTemplateValues | bool | `true` | whether to include the templateValues rendering process |
@@ -370,6 +379,7 @@ The Helm `config` values are converted into the `rstudio-connect.gcfg` service c
 | readinessProbe | object | `{"enabled":true,"failureThreshold":3,"httpGet":{"path":"/__ping__","port":3939},"initialDelaySeconds":3,"periodSeconds":3,"successThreshold":1,"timeoutSeconds":1}` | Used to configure the container's readinessProbe. Only included if enabled = true |
 | replicas | int | `1` | The number of replica pods to maintain for this service |
 | resources | object | `{}` | Defines resources for the rstudio-connect container |
+| revisionHistoryLimit | int | `3` | The revisionHistoryLimit to use for the pod deployment. Do not set to 0 |
 | securityContext | object | `{}` | Values to set the `securityContext` for the Connect container. It must include "privileged: true" or "CAP_SYS_ADMIN" when running in local execution mode. If launcher or backends.kubernetes is enabled, this can be removed with `securityContext: {}` |
 | service.annotations | object | `{}` | Annotations for the service, for example to specify [an internal load balancer](https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer) |
 | service.clusterIP | string | `""` | The cluster-internal IP to use with `service.type` ClusterIP |

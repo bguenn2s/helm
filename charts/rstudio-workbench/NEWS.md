@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.20.2
+-  correct job.tpl to check `suppressStdinAnnotation` instead of `limitStdinAnnotation` 
+   to supress stdin annotation from pod metadata (#842)
+
+## 0.20.1
+
+- Bump Workbench version to 2026.05.0
+
+## 0.20.0
+
+- **BREAKING**: Default images now pull from the `posit/` namespace on Docker Hub
+  - `image.repository` changed from `rstudio/rstudio-workbench` to `posit/workbench`
+  - `session.image.repository` changed from `rstudio/workbench-session` to `posit/workbench-session`
+  - `components.sessionInit.image.repository` changed to `posit/workbench-session-init`
+  - `components.positron.image.repository` changed to `posit/workbench-positron-init`
+  - Image tag format changed from `{tagPrefix}{appVersion}` to `{appVersion}-{os}`
+  - `image.tagPrefix` replaced by `image.os`
+  - `session.image.tagPrefix` replaced by `session.image.os`, `session.image.rVersion`, `session.image.pythonVersion`
+  - `versionOverride` no longer affects the session image tag (use `session.image.rVersion`, `session.image.pythonVersion`, `session.image.os` instead)
+  - Update chart metadata links and branding.
+
+## 0.11.2
+
+- Lower the default `revisionHistoryLimit` from `10` to `3` to prevent old ReplicaSets and their completed pods from accumulating across rolling updates. Operators can override via `revisionHistoryLimit` in values.
 
 ## 0.11.1
 

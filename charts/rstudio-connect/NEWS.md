@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.20.5
+
+- Remove the `os` field from `backends.kubernetes.defaultInitContainer` and
+  `launcher.defaultInitContainer`. The `connect-content-init` image copies an
+  architecture-specific binary and is not OS-specific; the tag is now the chart
+  `appVersion` (e.g. `2026.05.1`) rather than `2026.05.1-ubuntu-24.04`. Any
+  `os:` values in your `values.yaml` can be removed.
+
+## 0.20.4
+
+- Bump Connect version to 2026.05.1
+
+## 0.20.3
+
+- Add `get` on `pods/attach` and `pods/exec` to the direct Kubernetes runner Role in `templates/rbac.yaml` to support attach/exec authorization checks used by Kubernetes clients to support websocket connection upgrades.
+
+## 0.20.2
+
+- Bump Connect version to 2026.05.0
+
+## 0.20.1
+
+- BREAKING: `backends.kubernetes.enabled` now defaults to `true` and `launcher.enabled` now defaults to `false`. 
+    - New installations use the new implementation for Off-Host Execution by default. 
+    - For existing installations, see the [upgrade guide](https://docs.posit.co/helm/examples/connect/upgrade-launcher-to-kubernetes/launcher-to-kubernetes.html) for details on transitioning to the new implementation.
+    - To continue using the Launcher implementation, set `launcher.enabled: true` and `backends.kubernetes.enabled: false` in your values.yaml. 
+    - **IMPORTANT** When `backends.kubernetes.enabled=true`, service accounts used for content execution require the `connect.posit.co/service-account` label.
+
+## 0.20.0
+
+- **BREAKING**: Default images now pull from the `posit/` namespace on Docker Hub
+  - `image.repository` changed from `ghcr.io/rstudio/rstudio-connect` to `posit/connect`
+  - `launcher.defaultInitContainer.repository` changed to `posit/connect-content-init`
+  - `backends.kubernetes.defaultInitContainer.repository` changed to `posit/connect-content-init`
+  - Default content images updated to `posit/connect-content`
+  - Image tag format changed from `{tagPrefix}{appVersion}` to `{appVersion}-{os}`
+  - `image.tagPrefix` replaced by `image.os`; same for `launcher.defaultInitContainer` and `backends.kubernetes.defaultInitContainer`
+  - Update chart metadata links and branding.
+- **BREAKING**: Remove `launcher.customRuntimeYaml`, `launcher.additionalRuntimeImages`, and bundled `default-runtime.yaml` / `default-runtime-pro.yaml`. Use `executionEnvironments` instead.
+- Default Python executable updated to 3.14.4
+
+## 0.9.5
+
+- Bump Connect version to 2026.04.1
+
+## 0.9.4
+
+- Add `revisionHistoryLimit` value (default `3`) for the Connect deployment, exposing a knob to tune retained ReplicaSets and prevent old pods from accumulating across rolling updates.
+
 ## 0.9.3
 
 - Bump Connect version to 2026.04.0

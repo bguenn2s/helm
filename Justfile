@@ -94,21 +94,21 @@ test-connect-interpreter-versions:
   # find the default image
   image=$(
     helm template ./charts/rstudio-connect \
-    --set launcher.enabled=false \
+    --set backends.kubernetes.enabled=false \
     --show-only templates/deployment.yaml | \
-    grep "image\:.*rstudio-connect.*" | \
+    grep "image\:.*posit/connect\:.*" | \
     awk -F": " '{print $2}' | \
     xargs)
 
   for lang in "Python" "Quarto" "R"
   do
     echo "Testing $lang"
-    
+
     # print the default connect config file for local execution in ini format
     # print the section and grep for the Executables to find each interpreter
     executables=$(
       helm template ./charts/rstudio-connect \
-      --set launcher.enabled=false \
+      --set backends.kubernetes.enabled=false \
       --show-only templates/configmap.yaml | \
       sed -n -e "/\[$lang\]/,/\[*\]/ p" | \
       grep Executable | awk -F= '{print $2}' | \
